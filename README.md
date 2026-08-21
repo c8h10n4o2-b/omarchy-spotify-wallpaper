@@ -1,4 +1,11 @@
-# Spotify Album Wallpaper
+# Spotify Album Wallpaper — Multi-Monitor Fork
+
+This is a multi-monitor-focused fork of Emil Sall's original
+[Omarchy Spotify Wallpaper](https://github.com/emilsall/omarchy-spotify-wallpaper)
+plugin. It preserves the original plugin's design while adding selectable
+Hyprland output targeting for multi-monitor Omarchy setups. These fork-specific
+changes are maintained independently and are not affiliated with or supported
+by the original author.
 
 Shows the currently playing Spotify album art as your desktop wallpaper.
 Restores the original theme wallpaper when playback stops or Spotify closes.
@@ -10,6 +17,12 @@ player with "spotify" in its name is detected automatically.
 ## Features
 
 - Album art becomes the desktop wallpaper while music plays
+- Multi-monitor targeting from the settings panel:
+  - **Auto** applies album art to the focused monitor and keeps that selection
+    stable until the next wallpaper update
+  - **All** displays album art on every connected monitor
+  - **Named output** (for example, `DP-1` or `DP-2`) pins album art to that
+    specific Hyprland output while other monitors retain the Omarchy wallpaper
 - Three crop modes: **Fullscreen**, **Centered 75%**, **Native** resolution
 - Optional blur effect — blurs the fullscreen art, or uses a blurred backdrop behind the art in centered modes
 - Optional track info overlay (artist – album – title) rendered in the current
@@ -19,6 +32,13 @@ player with "spotify" in its name is detected automatically.
 - Settings panel in the Omarchy bar with native panel UI
 
 ## Screenshots
+### Multi-monitor targeting
+Select `auto`, every connected output, or pin album art to a specific Hyprland
+output such as `DP-2`.
+
+![Multi-monitor target selection](screenshots/multi-monitor.png)
+
+### Appearance
 ![panel](screenshots/panel.png)
 ![dark](screenshots/dark.png)
 ![light](screenshots/light.png)
@@ -38,7 +58,7 @@ omarchy pkg add playerctl jq imagemagick curl
 ## Install
 
 ```sh
-omarchy plugin add https://github.com/emilsall/omarchy-spotify-wallpaper.git --enable
+omarchy plugin add https://github.com/c8h10n4o2-b/omarchy-spotify-wallpaper.git --enable
 ```
 
 That's it — when the widget first loads, it detects that its background
@@ -61,6 +81,7 @@ the icon to quickly toggle the plugin on/off.
 | Setting | Description |
 |---------|-------------|
 | Enabled | Master on/off. Turning off restores the original wallpaper. |
+| Target monitor | The dropdown lists `auto`, `all`, and each connected Hyprland output. `auto` targets the focused monitor when the wallpaper is applied; `all` displays it on every monitor; choosing a named output such as `DP-1` or `DP-2` pins it there while other monitors retain their normal Omarchy wallpaper. |
 | Crop mode | Fullscreen (center-crop fill), Centered 75% (75% of shortest screen dimension), or Native (original art size) — centered modes letterbox on the theme background color. |
 | Show track info | Overlay artist, album, and track title using theme colors and the current Omarchy font. |
 | Reset on close | Restore the original wallpaper when Spotify closes or playback stops. When off, the last album art stays as the wallpaper. |
@@ -86,8 +107,15 @@ service, removes the theme-set hook, and cleans cached album art.
 A small systemd user service polls MPRIS every 2 seconds via `playerctl`.
 When a Spotify player is playing, it downloads the album art, composites it
 with ImageMagick (crop mode + optional track info in theme colors from
-`colors.toml`), and applies it with `omarchy theme bg set`. When playback
-stops or the player disappears, the original wallpaper is restored.
+`colors.toml`). A plugin-owned Omarchy Shell background layer displays it only
+on the selected Hyprland output, leaving Omarchy's normal theme background
+untouched on every other monitor. When playback stops or the player disappears,
+the layer is removed and the original wallpaper is revealed.
+
+The selected output is stored in Omarchy's normal per-widget settings inside
+`~/.config/omarchy/shell.json`, so it survives plugin and Omarchy updates. If a
+pinned output is disconnected, the plugin falls back to the currently focused
+output the next time album art is applied.
 
 Files it manages (safe to delete):
 
@@ -106,6 +134,7 @@ after editing `spotify-wallpaper.sh`.
 ## Changelog
 v1.0.0 - first release
 v1.1.0 - added blur effect
+v1.2.0 - added selectable multi-monitor targeting
 
 ## Support me
 If you like the plugin you can buy me a coffee: 

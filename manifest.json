@@ -1,20 +1,22 @@
 {
   "schemaVersion": 1,
   "id": "emilsall.spotify-wallpaper",
-  "name": "Spotify Album Wallpaper",
-  "version": "1.1.0",
-  "author": "emilsall",
+  "name": "Spotify Album Wallpaper — Multi-Monitor Fork",
+  "version": "1.2.0",
+  "author": "emilsall (original), c8h10n4o2-b (multi-monitor fork)",
   "license": "MIT",
-  "description": "Shows currently playing Spotify album art as the desktop wallpaper. Works with both the official Spotify client and Omarchy Spotify. Restores the original wallpaper when playback stops.",
+  "description": "Multi-monitor-focused fork of emilsall/omarchy-spotify-wallpaper with automatic, all-monitor, and named Hyprland output targeting.",
   "kinds": [
-    "bar-widget"
+    "bar-widget",
+    "service"
   ],
   "entryPoints": {
-    "barWidget": "BarWidget.qml"
+    "barWidget": "BarWidget.qml",
+    "service": "Service.qml"
   },
   "barWidget": {
-    "displayName": "Spotify Wallpaper",
-    "description": "Album art wallpaper switcher with crop and track info settings.",
+    "displayName": "Spotify Wallpaper · Multi-Monitor",
+    "description": "Multi-monitor fork with selectable output targeting, crop, and track info settings.",
     "category": "Media",
     "allowMultiple": false,
     "defaultSection": "left",
@@ -23,9 +25,17 @@
       "cropMode": "fullscreen",
       "showTrackInfo": "On",
       "resetOnClose": "On",
-      "blurEffect": "Off"
+      "blurEffect": "Off",
+      "targetMonitor": "auto"
     },
     "schema": [
+      {
+        "key": "targetMonitor",
+        "type": "string",
+        "label": "Target monitor",
+        "defaultValue": "auto",
+        "description": "Hyprland output name to use, auto for the focused output when applied, or all for every monitor."
+      },
       {
         "key": "enabled",
         "type": "enum",
