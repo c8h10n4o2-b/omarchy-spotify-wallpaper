@@ -27,7 +27,8 @@ player with "spotify" in its name is detected automatically.
   - **All** displays album art on every connected monitor
   - **Named output** (for example, `DP-1` or `DP-2`) pins album art to that
     specific Hyprland output while other monitors retain the Omarchy wallpaper
-- Three crop modes: **Fullscreen**, **Centered 75%**, **Native** resolution
+- Three crop modes: **Fullscreen**, **Centered 75%** (default), **Native** resolution
+- Proportional artwork uses 75% of the output’s shorter dimension, with rotation-aware rendering for portrait displays
 - Optional blur effect — blurs the fullscreen art, or uses a blurred backdrop behind the art in centered modes
 - Optional track info overlay (artist – album – title) rendered in the current
   theme's colors — pill-style card on fullscreen, below the art on centered modes
@@ -94,6 +95,34 @@ then perform the fresh install above. Settings stored on the existing bar entry
 use compatible keys. The new `targetMonitor` setting defaults to `auto`, and
 `barSection` defaults to `left` to preserve the original icon placement.
 
+## Spotify Connect playback
+
+Local Spotify playback works through MPRIS as before. For remote Spotify
+Connect playback tracked by Omarchy Spotify, the wallpaper service can read
+`quickshell.spotify.player snapshot` over Omarchy shell IPC. This returns only
+playing status, title, artist, album, and artwork URL; it does not transfer
+playback or access credentials.
+
+Omarchy Spotify 1.0.2 needs the included companion patch to provide this
+endpoint. Apply it to the user-installed plugin:
+
+```sh
+git -C ~/.config/omarchy/plugins/quickshell.spotify apply --check \
+  ~/.config/omarchy/plugins/emilsall.spotify-wallpaper/patches/omarchy-spotify-playback-snapshot.patch &&
+git -C ~/.config/omarchy/plugins/quickshell.spotify apply \
+  ~/.config/omarchy/plugins/emilsall.spotify-wallpaper/patches/omarchy-spotify-playback-snapshot.patch &&
+omarchy restart shell
+```
+
+Apply once. If the check fails, inspect the installed version or whether the
+endpoint already exists before proceeding. This is a local companion-plugin
+change that may need merging on a later explicit plugin update. It is not an
+upstream Omarchy Spotify feature requirement for local MPRIS playback.
+
+Open Omarchy Spotify after a new shell session so it discovers remote playback.
+Updates follow its existing refresh cadence, plus the wallpaper polling and
+rendering delay. If the endpoint is absent, local MPRIS remains available.
+
 ## Usage
 
 Click the disc-album icon in the bar to open the settings panel. Right-click
@@ -108,6 +137,11 @@ the icon to quickly toggle the plugin on/off.
 | Show track info | Overlay artist, album, and track title using theme colors and the current Omarchy font. |
 | Reset on close | Remove the album-art layer when Spotify closes or playback stops. When off, the last album art remains visible. |
 | Blur effect | Fullscreen: blur the album art itself. Centered modes: use a blurred, screen-filling copy of the art (dimmed with 30% black) as the backdrop instead of the theme background color. |
+
+New installations default to **Centered 75%**. Existing saved crop settings are
+preserved; select **Centered 75%** in the panel to opt in. A 2160×3840 portrait
+output uses artwork up to 1620×1620 pixels; a 1920×1080 output uses up to
+810×810 pixels. The proportions remain consistent across resolutions.
 
 Monitor names come directly from `hyprctl monitors -j`. Open the panel again
 after connecting or disconnecting a display to refresh the dropdown.
@@ -210,6 +244,7 @@ git diff --check
 ```
 
 ## Changelog
+v1.4.0 - default to proportional artwork; honor portrait output rotation; add optional Spotify Connect metadata fallback with companion patch; fix resume/theme cache deletion races and tolerate unavailable compositor queries
 v1.0.0 - first release
 v1.1.0 - added blur effect
 v1.2.0 - added selectable multi-monitor targeting

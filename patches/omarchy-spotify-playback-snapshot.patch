@@ -1,0 +1,20 @@
+--- a/BarWidget.qml
++++ b/BarWidget.qml
+@@ -158,6 +158,17 @@
+ 
+   IpcHandler {
+     target: root.moduleName + ".player"
++
++    // Companion plugins can read playback metadata without accessing auth.
++    function snapshot(): string {
++      return JSON.stringify({
++        playing: !!root.spotify && root.spotify.playing,
++        title: root.spotify ? root.spotify.title : "",
++        artist: root.spotify ? root.spotify.artist : "",
++        album: root.spotify ? root.spotify.album : "",
++        artUrl: root.spotify ? root.spotify.artUrl : ""
++      })
++    }
+ 
+     function configuredPlayer(): string {
+       return root.shortcutPlayer()

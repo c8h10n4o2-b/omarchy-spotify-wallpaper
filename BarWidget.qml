@@ -12,7 +12,7 @@ BarWidget {
   readonly property string iconSource: Qt.resolvedUrl("disc-album.svg")
 
   readonly property bool enabled: setting("enabled", "On") !== "Off"
-  readonly property string cropMode: setting("cropMode", "fullscreen")
+  readonly property string cropMode: setting("cropMode", "centered-75")
   readonly property bool showTrackInfo: setting("showTrackInfo", "On") !== "Off"
   readonly property bool resetOnClose: setting("resetOnClose", "On") !== "Off"
   readonly property bool blurEffect: setting("blurEffect", "Off") !== "Off"

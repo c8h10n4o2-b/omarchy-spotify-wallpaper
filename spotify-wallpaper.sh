@@ -71,7 +71,7 @@ read_config() {
     # A plugin whose widget is not in the bar layout is disabled: this covers
     # `omarchy plugin disable`, which removes the entry from the layout.
     local enabled="false"
-    local crop_mode="fullscreen"
+    local crop_mode="centered-75"
     local show_track_info="true"
     local reset_on_close="true"
     local blur_effect="false"
@@ -81,7 +81,7 @@ read_config() {
         line=$(jq -r --arg id "$PLUGIN_ID" '
             ([.bar.layout.left, .bar.layout.center, .bar.layout.right] | flatten
              | map(select(.id == $id)) | .[0]) // empty
-            | [(.enabled // "On"), (.cropMode // "fullscreen"),
+            | [(.enabled // "On"), (.cropMode // "centered-75"),
                (.showTrackInfo // "On"), (.resetOnClose // "On"), (.blurEffect // "Off"),
                (.targetMonitor // "auto")] | @tsv
         ' "$SHELL_JSON" 2>/dev/null || true)
@@ -99,7 +99,8 @@ read_config() {
 resolve_target_monitor() {
     local requested="$1"
     local monitors
-    monitors=$(hyprctl monitors -j 2>/dev/null || printf '[]')
+    monitors=$(hyprctl monitors -j 2>/dev/null) || monitors='[]'
+    jq -e 'type == "array"' >/dev/null 2>&1 <<< "$monitors" || monitors='[]'
 
     if [[ "$requested" == "all" ]]; then
         printf 'all'
@@ -125,9 +126,9 @@ get_screen_dimensions() {
     local target_monitor="$1"
     local dims=""
     if [[ "$target_monitor" == "all" || -z "$target_monitor" ]]; then
-        dims=$(hyprctl monitors -j 2>/dev/null | jq -r 'sort_by(.width * .height) | last | "\(.width)x\(.height)"' 2>/dev/null || true)
+        dims=$(hyprctl monitors -j 2>/dev/null | jq -r 'map(if ((.transform // 0) % 2) == 1 then . + {width: .height, height: .width} else . end) | sort_by(.width * .height) | last | "\(.width)x\(.height)"' 2>/dev/null || true)
     else
-        dims=$(hyprctl monitors -j 2>/dev/null | jq -r --arg name "$target_monitor" '.[] | select(.name == $name) | "\(.width)x\(.height)"' 2>/dev/null || true)
+        dims=$(hyprctl monitors -j 2>/dev/null | jq -r --arg name "$target_monitor" '.[] | select(.name == $name) | if ((.transform // 0) % 2) == 1 then . + {width: .height, height: .width} else . end | "\(.width)x\(.height)"' 2>/dev/null || true)
     fi
     if [[ -z "$dims" ]]; then
         dims="1920x1080"
@@ -217,7 +218,9 @@ process_image() {
     # processed cache key must include the track text — otherwise a same-album
     # track change would reuse the image with the previous track's title.
     # v4: fix pill alpha order (was drawn fully opaque, not 50% black).
-    local settings_key="${crop_mode}_${blur_effect}_${show_info}_${screen_dims}_v5"
+    local theme_hash
+    theme_hash=$(printf '%s' "$bg_color|$fg_color|$dim_fg_color" | md5sum | cut -d' ' -f1)
+    local settings_key="${crop_mode}_${blur_effect}_${show_info}_${screen_dims}_${theme_hash}_v6"
     if [[ "$show_info" == "true" ]]; then
         local track_hash
         track_hash=$(printf '%s' "${artist}|${album}|${title}" | md5sum | cut -d' ' -f1)
@@ -406,9 +409,8 @@ restore_wallpaper() {
         log "Removed album-art layer; no saved theme wallpaper reference found"
     fi
     rm -f "$ORIGINAL_FILE" "$LAST_ART_FILE" "$LAST_SETTINGS_FILE" "$LAST_TRACK_FILE"
-    # Defer cache cleanup: the shell's background transition may still be
-    # reading the just-replaced image. Deleting it immediately races the fade.
-    (sleep 5; rm -f "$CACHE_DIR"/*.jpg) &
+    # Retain recent artwork: a quick resume may reuse these exact paths.
+    # Old unused images are pruned after publishing the next wallpaper.
 }
 
 set_album_art() {
@@ -475,6 +477,7 @@ set_album_art() {
             printf '%s' "$art_url" > "$LAST_ART_FILE"
             printf '%s' "$settings_key" > "$LAST_SETTINGS_FILE"
             printf '%s' "$track_key" > "$LAST_TRACK_FILE"
+            find "$CACHE_DIR" -maxdepth 1 -type f -name '*.jpg' -mmin +1440 ! -path "$final_dest" ! -path "$raw_dest" -delete
             log "Set album art as wallpaper on $target_monitor: $title - $artist (crop: $crop_mode, info: $show_info, blur: $blur_effect)"
         fi
     fi
@@ -527,15 +530,25 @@ while true; do
     prev_settings_key="$current_settings_key"
 
     if theme_changed && $spotify_playing; then
-        log "Theme changed — clearing cache and forcing wallpaper update"
+        log "Theme changed — forcing wallpaper update"
         rm -f "$LAST_ART_FILE" "$LAST_SETTINGS_FILE" "$LAST_TRACK_FILE"
-        # Defer processed-image cleanup: the currently displayed wallpaper is
-        # one of these files until the re-render below replaces it.
-        (sleep 5; rm -f "$CACHE_DIR"/*_*.jpg) &
+        # Theme colors participate in the render key; do not delete files
+        # while the shell or an immediate resume may still be using them.
         capture_theme_wallpaper
     fi
 
     detect_playing_player
+
+    # Omarchy Spotify also tracks Connect playback with no local MPRIS player.
+    # Ask its read-only IPC endpoint; never read authentication state or change
+    # the playback device. Older/absent plugins simply leave this unavailable.
+    spotify_snapshot=""
+    if [[ -z "$ACTIVE_PLAYER" ]]; then
+        spotify_snapshot=$(omarchy-shell quickshell.spotify.player snapshot 2>/dev/null || true)
+        if jq -e '.playing == true and (.artUrl | type == "string" and length > 0)' >/dev/null 2>&1 <<< "$spotify_snapshot"; then
+            ACTIVE_PLAYER="omarchy-spotify-connect"
+        fi
+    fi
 
     if [[ -n "$ACTIVE_PLAYER" ]]; then
         if ! $spotify_playing; then
@@ -546,10 +559,17 @@ while true; do
             log "Spotify playing ($ACTIVE_PLAYER) — switching to album art wallpaper (crop: $config_crop, info: $config_show_info, blur: $config_blur)"
         fi
 
-        art_url=$(playerctl -p "$ACTIVE_PLAYER" metadata mpris:artUrl 2>/dev/null || true)
-        artist=$(playerctl -p "$ACTIVE_PLAYER" metadata xesam:artist 2>/dev/null || true)
-        album=$(playerctl -p "$ACTIVE_PLAYER" metadata xesam:album 2>/dev/null || true)
-        title=$(playerctl -p "$ACTIVE_PLAYER" metadata xesam:title 2>/dev/null || true)
+        if [[ "$ACTIVE_PLAYER" == "omarchy-spotify-connect" ]]; then
+            art_url=$(jq -r '.artUrl // ""' <<< "$spotify_snapshot")
+            artist=$(jq -r '.artist // ""' <<< "$spotify_snapshot")
+            album=$(jq -r '.album // ""' <<< "$spotify_snapshot")
+            title=$(jq -r '.title // ""' <<< "$spotify_snapshot")
+        else
+            art_url=$(playerctl -p "$ACTIVE_PLAYER" metadata mpris:artUrl 2>/dev/null || true)
+            artist=$(playerctl -p "$ACTIVE_PLAYER" metadata xesam:artist 2>/dev/null || true)
+            album=$(playerctl -p "$ACTIVE_PLAYER" metadata xesam:album 2>/dev/null || true)
+            title=$(playerctl -p "$ACTIVE_PLAYER" metadata xesam:title 2>/dev/null || true)
+        fi
 
         if [[ -n "$art_url" ]]; then
             set_album_art "$art_url" "$config_crop" "$config_show_info" "$config_blur" "$artist" "$album" "$title" "$resolved_target"

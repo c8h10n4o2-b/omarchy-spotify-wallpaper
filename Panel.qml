@@ -19,7 +19,7 @@ Panel {
   readonly property string fontFamily: bar ? bar.fontFamily : Style.font.family
 
   readonly property bool widgetEnabled: setting("enabled", "On") !== "Off"
-  readonly property string cropMode: setting("cropMode", "fullscreen")
+  readonly property string cropMode: setting("cropMode", "centered-75")
   readonly property bool showTrackInfo: setting("showTrackInfo", "On") !== "Off"
   readonly property bool resetOnClose: setting("resetOnClose", "On") !== "Off"
   readonly property bool blurEffect: setting("blurEffect", "Off") !== "Off"
