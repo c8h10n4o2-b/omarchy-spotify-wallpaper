@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "id": "emilsall.spotify-wallpaper",
-  "name": "Spotify Album Wallpaper — Multi-Monitor Fork",
-  "version": "1.4.0",
+  "name": "Spotify Album Wallpaper \u2014 Multi-Monitor Fork",
+  "version": "1.5.0",
   "author": "emilsall (original), c8h10n4o2-b (multi-monitor fork)",
   "license": "MIT",
   "description": "Multi-monitor-focused fork of emilsall/omarchy-spotify-wallpaper with automatic, all-monitor, and named Hyprland output targeting.",
@@ -15,7 +15,7 @@
     "service": "Service.qml"
   },
   "barWidget": {
-    "displayName": "Spotify Wallpaper · Multi-Monitor",
+    "displayName": "Spotify Wallpaper \u00b7 Multi-Monitor",
     "description": "Multi-monitor fork with selectable output targeting, crop, and track info settings.",
     "category": "Media",
     "allowMultiple": false,
@@ -27,14 +27,19 @@
       "resetOnClose": "On",
       "blurEffect": "Off",
       "targetMonitor": "auto",
-      "barSection": "left"
+      "barSection": "left",
+      "artworkSize": 75
     },
     "schema": [
       {
         "key": "barSection",
         "type": "enum",
         "label": "Bar placement",
-        "options": ["left", "center", "right"],
+        "options": [
+          "left",
+          "center",
+          "right"
+        ],
         "defaultValue": "left",
         "description": "Choose which Omarchy bar section contains the plugin icon. Left preserves the original placement."
       },
@@ -49,7 +54,10 @@
         "key": "enabled",
         "type": "enum",
         "label": "Enabled",
-        "options": ["On", "Off"],
+        "options": [
+          "On",
+          "Off"
+        ],
         "defaultValue": "On",
         "description": "When off, the album-art layer is removed and the normal Omarchy wallpaper is revealed."
       },
@@ -57,15 +65,31 @@
         "key": "cropMode",
         "type": "enum",
         "label": "Crop mode",
-        "options": ["fullscreen", "centered-75", "centered-native"],
+        "options": [
+          "fullscreen",
+          "centered-75",
+          "centered-native"
+        ],
         "defaultValue": "centered-75",
-        "description": "Fullscreen fills the screen with center-cropped art. Centered 75% shows the art at 75% of the shortest screen dimension. Centered native shows art at its native resolution."
+        "description": "Fullscreen fills the screen. Centered uses the artwork size slider. Native shows the original image size."
+      },
+      {
+        "key": "artworkSize",
+        "type": "integer",
+        "label": "Centered artwork size (%)",
+        "defaultValue": 75,
+        "min": 10,
+        "max": 100,
+        "description": "Artwork size as a percentage of the shorter screen dimension in Centered mode."
       },
       {
         "key": "showTrackInfo",
         "type": "enum",
         "label": "Show track info",
-        "options": ["On", "Off"],
+        "options": [
+          "On",
+          "Off"
+        ],
         "defaultValue": "On",
         "description": "Display artist, album, and track title on the wallpaper using theme colors."
       },
@@ -73,7 +97,10 @@
         "key": "resetOnClose",
         "type": "enum",
         "label": "Reset on close",
-        "options": ["On", "Off"],
+        "options": [
+          "On",
+          "Off"
+        ],
         "defaultValue": "On",
         "description": "Remove the album-art layer when Spotify closes or playback stops."
       },
@@ -81,7 +108,10 @@
         "key": "blurEffect",
         "type": "enum",
         "label": "Blur effect",
-        "options": ["On", "Off"],
+        "options": [
+          "On",
+          "Off"
+        ],
         "defaultValue": "Off",
         "description": "Blur the album art in fullscreen mode, or use a blurred backdrop behind the art in centered modes."
       }

@@ -76,6 +76,7 @@ read_config() {
     local reset_on_close="true"
     local blur_effect="false"
     local target_monitor="auto"
+    local artwork_size=75
     if [[ -f "$SHELL_JSON" ]]; then
         local line
         line=$(jq -r --arg id "$PLUGIN_ID" '
@@ -83,17 +84,18 @@ read_config() {
              | map(select(.id == $id)) | .[0]) // empty
             | [(.enabled // "On"), (.cropMode // "centered-75"),
                (.showTrackInfo // "On"), (.resetOnClose // "On"), (.blurEffect // "Off"),
-               (.targetMonitor // "auto")] | @tsv
+               (.targetMonitor // "auto"),
+               ((.artworkSize // 75) | tonumber? // 75 | round | if . < 10 then 10 elif . > 100 then 100 else . end)] | @tsv
         ' "$SHELL_JSON" 2>/dev/null || true)
         if [[ -n "$line" ]]; then
-            IFS=$'\t' read -r enabled crop_mode show_track_info reset_on_close blur_effect target_monitor <<< "$line"
+            IFS=$'\t' read -r enabled crop_mode show_track_info reset_on_close blur_effect target_monitor artwork_size <<< "$line"
         fi
     fi
     [[ "$enabled" == "On" || "$enabled" == "true" ]] && enabled="true" || enabled="false"
     [[ "$show_track_info" == "On" || "$show_track_info" == "true" ]] && show_track_info="true" || show_track_info="false"
     [[ "$reset_on_close" == "On" || "$reset_on_close" == "true" ]] && reset_on_close="true" || reset_on_close="false"
     [[ "$blur_effect" == "On" || "$blur_effect" == "true" ]] && blur_effect="true" || blur_effect="false"
-    printf '%s\n%s\n%s\n%s\n%s\n%s\n' "$enabled" "$crop_mode" "$show_track_info" "$reset_on_close" "$blur_effect" "$target_monitor"
+    printf '%s\n%s\n%s\n%s\n%s\n%s\n%s\n' "$enabled" "$crop_mode" "$show_track_info" "$reset_on_close" "$blur_effect" "$target_monitor" "$artwork_size"
 }
 
 resolve_target_monitor() {
@@ -198,6 +200,7 @@ process_image() {
     local title="$7"
     local blur_effect="$8"
     local target_monitor="$9"
+    local artwork_size="${10:-75}"
 
     local bg_color
     bg_color=$(get_theme_color "background" "#1e1e2e")
@@ -220,7 +223,7 @@ process_image() {
     # v4: fix pill alpha order (was drawn fully opaque, not 50% black).
     local theme_hash
     theme_hash=$(printf '%s' "$bg_color|$fg_color|$dim_fg_color" | md5sum | cut -d' ' -f1)
-    local settings_key="${crop_mode}_${blur_effect}_${show_info}_${screen_dims}_${theme_hash}_v6"
+    local settings_key="${crop_mode}_${blur_effect}_${show_info}_${screen_dims}_${theme_hash}_${artwork_size}_v7"
     if [[ "$show_info" == "true" ]]; then
         local track_hash
         track_hash=$(printf '%s' "${artist}|${album}|${title}" | md5sum | cut -d' ' -f1)
@@ -247,7 +250,7 @@ process_image() {
         centered-75)
             local target_size
             target_size=$(( screen_w < screen_h ? screen_w : screen_h ))
-            target_size=$(( target_size * 75 / 100 ))
+            target_size=$(( target_size * artwork_size / 100 ))
             image_size=$target_size
             if [[ "$blur_effect" == "true" ]]; then
                 # Blurred, screen-filling copy of the art as the backdrop,
@@ -422,9 +425,10 @@ set_album_art() {
     local album="$6"
     local title="$7"
     local target_monitor="$8"
+    local artwork_size="${9:-75}"
 
     local track_key="${art_url}|${artist}|${album}|${title}"
-    local settings_key="${crop_mode}_${blur_effect}_${show_info}_${target_monitor}"
+    local settings_key="${crop_mode}_${blur_effect}_${show_info}_${target_monitor}_${artwork_size}"
 
     if [[ -f "$LAST_ART_FILE" ]] && [[ "$(cat "$LAST_ART_FILE")" == "$art_url" ]] && \
        [[ -f "$LAST_SETTINGS_FILE" ]] && [[ "$(cat "$LAST_SETTINGS_FILE")" == "$settings_key" ]] && \
@@ -469,7 +473,7 @@ set_album_art() {
         local url_hash
         url_hash=$(printf '%s' "$art_url" | md5sum | cut -d' ' -f1)
         local final_dest
-        final_dest=$(process_image "$raw_dest" "$crop_mode" "$url_hash" "$show_info" "$artist" "$album" "$title" "$blur_effect" "$target_monitor")
+        final_dest=$(process_image "$raw_dest" "$crop_mode" "$url_hash" "$show_info" "$artist" "$album" "$title" "$blur_effect" "$target_monitor" "$artwork_size")
         if [[ -n "$final_dest" ]] && [[ -f "$final_dest" ]]; then
             jq -n --arg path "$final_dest" --arg monitor "$target_monitor" \
                 '{path: $path, monitor: $monitor}' > "$ACTIVE_WALLPAPER_FILE.tmp"
@@ -503,9 +507,10 @@ while true; do
     config_reset_on_close=$(echo "$config_output" | sed -n '4p')
     config_blur=$(echo "$config_output" | sed -n '5p')
     config_target=$(echo "$config_output" | sed -n '6p')
+    config_artwork_size=$(echo "$config_output" | sed -n '7p')
     resolved_target=$(resolve_target_monitor "$config_target")
 
-    current_settings_key="${config_crop}_${config_blur}_${config_show_info}_${resolved_target}"
+    current_settings_key="${config_crop}_${config_blur}_${config_show_info}_${resolved_target}_${config_artwork_size}"
 
     if [[ "$config_enabled" != "true" ]]; then
         if $was_enabled; then
@@ -572,7 +577,7 @@ while true; do
         fi
 
         if [[ -n "$art_url" ]]; then
-            set_album_art "$art_url" "$config_crop" "$config_show_info" "$config_blur" "$artist" "$album" "$title" "$resolved_target"
+            set_album_art "$art_url" "$config_crop" "$config_show_info" "$config_blur" "$artist" "$album" "$title" "$resolved_target" "$config_artwork_size"
         fi
     else
         if $spotify_playing; then

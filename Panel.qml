@@ -20,6 +20,7 @@ Panel {
 
   readonly property bool widgetEnabled: setting("enabled", "On") !== "Off"
   readonly property string cropMode: setting("cropMode", "centered-75")
+  readonly property int artworkSize: Math.max(10, Math.min(100, Math.round(Number(setting("artworkSize", 75)) || 75)))
   readonly property bool showTrackInfo: setting("showTrackInfo", "On") !== "Off"
   readonly property bool resetOnClose: setting("resetOnClose", "On") !== "Off"
   readonly property bool blurEffect: setting("blurEffect", "Off") !== "Off"
@@ -81,7 +82,7 @@ Panel {
 
   readonly property var cropOptions: [
     { value: "fullscreen", label: "Fullscreen" },
-    { value: "centered-75", label: "Centered 75%" },
+    { value: "centered-75", label: "Centered" },
     { value: "centered-native", label: "Native" }
   ]
   readonly property var sectionOptions: [
@@ -306,6 +307,40 @@ Panel {
 
           PanelSeparator {
             foreground: root.foreground
+          }
+
+          Column {
+            width: parent.width
+            visible: root.cropMode === "centered-75"
+            spacing: Style.space(6)
+
+            Text {
+              text: "Artwork size · " + Math.round(sizeSlider.dragging ? sizeSlider.liveValue : root.artworkSize) + "%"
+              color: root.foreground
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.body
+            }
+
+            PanelSlider {
+              id: sizeSlider
+              width: parent.width
+              bar: root.bar
+              minimum: 10
+              maximum: 100
+              step: 1
+              integer: true
+              value: root.artworkSize
+              onReleased: function(value) { root.updateSetting("artworkSize", Math.round(value)) }
+            }
+
+            Text {
+              width: parent.width
+              text: "Percentage of the screen’s shorter side. Applied when you release the slider."
+              color: Qt.darker(root.foreground, 1.4)
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.bodySmall
+              wrapMode: Text.WordWrap
+            }
           }
 
           Toggle {

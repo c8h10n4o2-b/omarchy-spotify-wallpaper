@@ -27,8 +27,8 @@ player with "spotify" in its name is detected automatically.
   - **All** displays album art on every connected monitor
   - **Named output** (for example, `DP-1` or `DP-2`) pins album art to that
     specific Hyprland output while other monitors retain the Omarchy wallpaper
-- Three crop modes: **Fullscreen**, **Centered 75%** (default), **Native** resolution
-- Proportional artwork uses 75% of the output’s shorter dimension, with rotation-aware rendering for portrait displays
+- Three crop modes: **Fullscreen**, **Centered** (default), **Native** resolution
+- Proportional artwork uses 10–100% of the output’s shorter dimension (75% by default), with rotation-aware rendering for portrait displays
 - Optional blur effect — blurs the fullscreen art, or uses a blurred backdrop behind the art in centered modes
 - Optional track info overlay (artist – album – title) rendered in the current
   theme's colors — pill-style card on fullscreen, below the art on centered modes
@@ -133,13 +133,18 @@ the icon to quickly toggle the plugin on/off.
 | Enabled | Master on/off. Turning it off removes the album-art layer and reveals the normal Omarchy wallpaper. |
 | Bar placement | Moves the icon to the left, centre, or right section of the Omarchy bar. Left is the default for backward compatibility. |
 | Target monitor | The dropdown lists `auto`, `all`, and every currently connected Hyprland output. `auto` resolves to the focused monitor whenever album art is generated; `all` displays it on every monitor; choosing a named output such as `DP-1` or `DP-2` pins it there while other monitors retain their normal Omarchy wallpaper. If a pinned output is unavailable, the next update falls back to the focused output without overwriting the saved selection. |
-| Crop mode | Fullscreen (center-crop fill), Centered 75% (75% of shortest screen dimension), or Native (original art size) — centered modes letterbox on the theme background color. |
+| Crop mode | Fullscreen (center-crop fill), Centered (10–100% of shortest screen dimension), or Native (original art size) — centered modes letterbox on the theme background color. |
 | Show track info | Overlay artist, album, and track title using theme colors and the current Omarchy font. |
 | Reset on close | Remove the album-art layer when Spotify closes or playback stops. When off, the last album art remains visible. |
 | Blur effect | Fullscreen: blur the album art itself. Centered modes: use a blurred, screen-filling copy of the art (dimmed with 30% black) as the backdrop instead of the theme background color. |
 
-New installations default to **Centered 75%**. Existing saved crop settings are
-preserved; select **Centered 75%** in the panel to opt in. A 2160×3840 portrait
+In **Centered** mode, use the **Artwork size** slider to choose 10–100% of
+the screen’s shorter side. The percentage is saved when you release the slider,
+so dragging does not repeatedly render large images. Native and Fullscreen
+keep their existing behavior. The default is 75%.
+
+New installations default to **Centered**. Existing saved crop settings are
+preserved; select **Centered** in the panel to opt in. At the default 75%, a 2160×3840 portrait
 output uses artwork up to 1620×1620 pixels; a 1920×1080 output uses up to
 810×810 pixels. The proportions remain consistent across resolutions.
 
@@ -244,6 +249,7 @@ git diff --check
 ```
 
 ## Changelog
+v1.5.0 - add a persistent 10–100% artwork-size slider for Centered mode; preserve the 75% default and existing crop settings
 v1.4.0 - default to proportional artwork; honor portrait output rotation; add optional Spotify Connect metadata fallback with companion patch; fix resume/theme cache deletion races and tolerate unavailable compositor queries
 v1.0.0 - first release
 v1.1.0 - added blur effect
