@@ -223,7 +223,7 @@ process_image() {
     # v4: fix pill alpha order (was drawn fully opaque, not 50% black).
     local theme_hash
     theme_hash=$(printf '%s' "$bg_color|$fg_color|$dim_fg_color" | md5sum | cut -d' ' -f1)
-    local settings_key="${crop_mode}_${blur_effect}_${show_info}_${screen_dims}_${theme_hash}_${artwork_size}_v7"
+    local settings_key="${crop_mode}_${blur_effect}_${show_info}_${screen_dims}_${theme_hash}_${artwork_size}_v8"
     if [[ "$show_info" == "true" ]]; then
         local track_hash
         track_hash=$(printf '%s' "${artist}|${album}|${title}" | md5sum | cut -d' ' -f1)
@@ -305,61 +305,52 @@ process_image() {
         local bottom_margin=$(( screen_h * 50 / 1080 ))
         [[ $bottom_margin -lt 30 ]] && bottom_margin=30
 
-        if [[ "$crop_mode" == "fullscreen" ]]; then
-            local info_text="${esc_artist}  -  ${esc_album}"
-            local pill_pad_x=$(( screen_h * 40 / 1080 ))
-            [[ $pill_pad_x -lt 20 ]] && pill_pad_x=20
-            local pill_pad_y=$(( screen_h * 16 / 1080 ))
-            [[ $pill_pad_y -lt 8 ]] && pill_pad_y=8
-            local pill_gap=$(( screen_h * 10 / 1080 ))
-            [[ $pill_gap -lt 5 ]] && pill_gap=5
-            local pill_radius=$(( screen_h * 16 / 1080 ))
-            [[ $pill_radius -lt 8 ]] && pill_radius=8
-
-            local title_w sub_w pill_w pill_h title_pill_y sub_pill_y
-            title_w=$(magick -font "$font_name" -pointsize "$title_size" label:"$esc_title" -format '%w' info: 2>/dev/null || echo 200)
-            sub_w=$(magick -font "$font_name" -pointsize "$sub_size" label:"$info_text" -format '%w' info: 2>/dev/null || echo 200)
-            pill_w=$(( title_w > sub_w ? title_w : sub_w ))
-            pill_w=$(( pill_w + pill_pad_x * 2 ))
-            pill_h=$(( title_size + line_gap + sub_size + pill_pad_y * 2 ))
-            local pill_x=$(( (screen_w - pill_w) / 2 ))
-            local pill_y=$(( screen_h - pill_h - bottom_margin ))
-            title_pill_y=$(( pill_y + pill_pad_y ))
-            sub_pill_y=$(( pill_y + pill_pad_y + title_size + line_gap ))
-
-            magick_args+=(
-                "(" -size "${pill_w}x${pill_h}" xc:none -fill "#000000"
-                -draw "roundRectangle 0,0 $((pill_w-1)),$((pill_h-1)) $pill_radius,$pill_radius"
-                -alpha set -channel A -evaluate multiply 0.5 +channel ")"
-                -gravity northwest -geometry "+${pill_x}+${pill_y}" -composite
-                -font "$font_name" -fill "$fg_color" -pointsize "$title_size" -gravity north
-                -annotate "+0+$title_pill_y" "$esc_title"
-                -fill "$dim_fg_color" -pointsize "$sub_size" -gravity north
-                -annotate "+0+$sub_pill_y" "$info_text"
-            )
-        else
-            local image_top image_bottom
-            if [[ $image_size -gt 0 ]]; then
-                image_top=$(( (screen_h - image_size) / 2 ))
-                image_bottom=$(( image_top + image_size ))
+        # caption: wraps words to a bounded width, unlike annotate/label.
+        # Keep even unusually long metadata within the screen vertically.
+        local text_width=$(( screen_w * 85 / 100 ))
+        local max_text_height=$(( screen_h / 3 ))
+        local info_file
+        info_file=$(mktemp "$CACHE_DIR/track-info.XXXXXX.png")
+        if magick \
+            "(" -background none -fill "$fg_color" -font "$font_name" \
+                -pointsize "$title_size" -gravity center -size "${text_width}x" \
+                caption:"$esc_title" ")" \
+            "(" -size "${text_width}x${line_gap}" xc:none ")" \
+            "(" -background none -fill "$dim_fg_color" -font "$font_name" \
+                -pointsize "$sub_size" -gravity center -size "${text_width}x" \
+                caption:"$esc_artist  -  $esc_album" ")" \
+            -background none -gravity center -append \
+            -resize "${text_width}x${max_text_height}>" "$info_file"; then
+            local text_w text_h
+            read -r text_w text_h < <(magick identify -format '%w %h\n' "$info_file")
+            local text_x=$(( (screen_w - text_w) / 2 ))
+            local text_y
+            if [[ "$crop_mode" == "fullscreen" ]]; then
+                local pad_x=$(( screen_w * 2 / 100 ))
+                local pad_y=$(( screen_h * 16 / 1080 ))
+                local radius=$(( screen_h * 16 / 1080 ))
+                local pill_w=$(( text_w + pad_x * 2 ))
+                local pill_h=$(( text_h + pad_y * 2 ))
+                local pill_x=$(( (screen_w - pill_w) / 2 ))
+                local pill_y=$(( screen_h - pill_h - bottom_margin ))
+                text_y=$(( pill_y + pad_y ))
+                magick_args+=(
+                    "(" -size "${pill_w}x${pill_h}" xc:none -fill "#000000"
+                    -draw "roundRectangle 0,0 $((pill_w-1)),$((pill_h-1)) $radius,$radius"
+                    -alpha set -channel A -evaluate multiply 0.5 +channel ")"
+                    -gravity northwest -geometry "+${pill_x}+${pill_y}" -composite
+                )
             else
-                image_top=0
-                image_bottom=0
+                text_y=$(( (screen_h + image_size) / 2 + bottom_margin ))
+                if (( text_y + text_h + bottom_margin > screen_h )); then
+                    text_y=$(( screen_h - text_h - bottom_margin ))
+                fi
             fi
-
-            local text_block_h=$(( title_size + line_gap + sub_size ))
-            local text_top=$(( image_bottom + bottom_margin ))
-
-            if [[ $(( text_top + text_block_h )) -gt $screen_h ]]; then
-                text_top=$(( screen_h - text_block_h - bottom_margin ))
-            fi
-
-            magick_args+=(
-                -font "$font_name" -fill "$fg_color" -pointsize "$title_size" -gravity north
-                -annotate "+0+$text_top" "$esc_title"
-                -fill "$dim_fg_color" -pointsize "$sub_size" -gravity north
-                -annotate "+0+$(( text_top + title_size + line_gap ))" "$esc_artist  -  $esc_album"
-            )
+            magick_args+=("$info_file" -gravity northwest -geometry "+${text_x}+${text_y}" -composite)
+        else
+            log "Warning: track text rendering failed; skipping track info"
+            rm -f "$info_file"
+            info_file=""
         fi
         fi
     fi
@@ -367,8 +358,10 @@ process_image() {
     magick_args+=(-quality 90 "$output")
 
     if magick "${magick_args[@]}" 2>/dev/null; then
+        [[ -z "${info_file:-}" ]] || rm -f "$info_file"
         printf '%s' "$output"
     else
+        [[ -z "${info_file:-}" ]] || rm -f "$info_file"
         log "Warning: image processing failed, using raw art"
         printf '%s' "$input"
     fi

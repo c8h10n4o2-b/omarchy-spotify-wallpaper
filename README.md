@@ -249,6 +249,7 @@ git diff --check
 ```
 
 ## Changelog
+v1.5.1 - wrap long titles and artist/album text within screen margins; fit fullscreen backing to wrapped text and bound unusually tall text blocks
 v1.5.0 - add a persistent 10–100% artwork-size slider for Centered mode; preserve the 75% default and existing crop settings
 v1.4.0 - default to proportional artwork; honor portrait output rotation; add optional Spotify Connect metadata fallback with companion patch; fix resume/theme cache deletion races and tolerate unavailable compositor queries
 v1.0.0 - first release
