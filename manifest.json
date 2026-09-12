@@ -23,6 +23,7 @@
     "defaults": {
       "enabled": "On",
       "cropMode": "fullscreen",
+      "artworkSize": 75,
       "showTrackInfo": "On",
       "resetOnClose": "On",
       "blurEffect": "Off",
@@ -59,7 +60,16 @@
         "label": "Crop mode",
         "options": ["fullscreen", "centered-75", "centered-native"],
         "defaultValue": "fullscreen",
-        "description": "Fullscreen fills the screen with center-cropped art. Centered 75% shows the art at 75% of the shortest screen dimension. Centered native shows art at its native resolution."
+        "description": "Fullscreen fills the screen with center-cropped art. Centered scales the art to the selected percentage of the shortest screen dimension. Centered native shows art at its native resolution."
+      },
+      {
+        "key": "artworkSize",
+        "type": "integer",
+        "label": "Centered artwork size (%)",
+        "defaultValue": 75,
+        "min": 10,
+        "max": 100,
+        "description": "Artwork size as a percentage of the shorter screen dimension in Centered mode."
       },
       {
         "key": "showTrackInfo",

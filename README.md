@@ -20,7 +20,7 @@ Connect it even works while playing and switching tracks on another device.
   - **All** displays album art on every connected monitor
   - **Named output** (for example, `DP-1` or `DP-2`) pins album art to that
     specific Hyprland output while other monitors retain the Omarchy wallpaper
-- Three crop modes: **Fullscreen**, **Centered 75%**, **Native** resolution
+- Three crop modes: **Fullscreen**, **Centered**, **Native** resolution
 - Optional blur effect — blurs the fullscreen art, or uses a blurred backdrop behind the art in centered modes
 - Optional track info overlay (artist – album – title) rendered in the current
   theme's colors — pill-style card on fullscreen, below the art on centered modes
@@ -86,7 +86,8 @@ the icon to quickly toggle the plugin on/off.
 | Enabled | Master on/off. Turning it off removes the album-art layer and reveals the normal Omarchy wallpaper. |
 | Bar placement | Moves the icon to the left, centre, or right section of the Omarchy bar. Left is the default. |
 | Target monitor | The dropdown lists `auto`, `all`, and every currently connected Hyprland output. `auto` resolves to the focused monitor whenever album art is generated; `all` displays it on every monitor; choosing a named output such as `DP-1` or `DP-2` pins it there while other monitors retain their normal Omarchy wallpaper. If a pinned output is unavailable, the next update falls back to the focused output without overwriting the saved selection. |
-| Crop mode | Fullscreen (center-crop fill), Centered 75% (75% of shortest screen dimension), or Native (original art size) — centered modes letterbox on the theme background color. |
+| Crop mode | Fullscreen (center-crop fill), Centered (adjustable percentage of shortest screen dimension), or Native (original art size) — centered modes letterbox on the theme background color. |
+| Artwork size | In Centered mode, choose 10–100% of the screen’s shorter side. Defaults to 75%; saves and applies when the slider is released. |
 | Show track info | Overlay artist, album, and track title using theme colors and the current Omarchy font. |
 | Reset on close | Remove the album-art layer when Spotify closes or playback stops. When off, the last album art remains visible. |
 | Blur effect | Fullscreen: blur the album art itself. Centered modes: use a blurred, screen-filling copy of the art (dimmed with 30% black) as the backdrop instead of the theme background color. |
